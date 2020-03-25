@@ -67,7 +67,14 @@ const SUBSTITUTIONS = {
  */
 function applySubstitution(action, tokens, index) {
     if (action instanceof SubstitutionAction) {
-        SUBSTITUTIONS[action.id](action, tokens, index);
+
+        if (SUBSTITUTIONS[action.id]) {
+            SUBSTITUTIONS[action.id](action, tokens, index);
+        } else {
+            console.log('Invalid substitution', action.id);
+            /*jshint -W087 */
+            debugger;
+        }
     }
 }
 

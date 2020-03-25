@@ -219,7 +219,7 @@ FeatureQuery.prototype.getDefaultScriptFeaturesIndexes = function () {
  * Get feature indexes of a specific script
  * @param {string} scriptTag script tag
  */
-FeatureQuery.prototype.getScriptFeaturesIndexes = function(scriptTag) {
+FeatureQuery.prototype.getScriptFeaturesIndexes = function (scriptTag) {
     const tables = this.font.tables;
     if (!tables.gsub) return [];
     if (!scriptTag) return this.getDefaultScriptFeaturesIndexes();
@@ -280,7 +280,7 @@ FeatureQuery.prototype.getScriptFeatures = function (scriptTag) {
  * @param {any} lookupTable lookup table
  * @param {any} subtable subtable
  */
-FeatureQuery.prototype.getSubstitutionType = function(lookupTable, subtable) {
+FeatureQuery.prototype.getSubstitutionType = function (lookupTable, subtable) {
     const lookupType = lookupTable.lookupType.toString();
     const substFormat = subtable.substFormat.toString();
     return lookupType + substFormat;
@@ -291,8 +291,17 @@ FeatureQuery.prototype.getSubstitutionType = function(lookupTable, subtable) {
  * @param {any} lookupTable lookup table
  * @param {any} subtable subtable
  */
-FeatureQuery.prototype.getLookupMethod = function(lookupTable, subtable) {
+FeatureQuery.prototype.getLookupMethod = function (lookupTable, subtable) {
     let substitutionType = this.getSubstitutionType(lookupTable, subtable);
+
+    // Extension type
+    if (substitutionType === '71') {
+        substitutionType = this.getSubstitutionType(subtable, subtable.extension);
+        subtable = subtable.extension;
+        /*jshint -W087 */
+        debugger;
+    }
+
     switch (substitutionType) {
         case '11':
             return glyphIndex => singleSubstitutionFormat1.apply(
@@ -314,6 +323,27 @@ FeatureQuery.prototype.getLookupMethod = function(lookupTable, subtable) {
             return glyphIndex => decompositionSubstitutionFormat1.apply(
                 this, [glyphIndex, subtable]
             );
+        case '31':
+        case '71':
+            return x => {
+                /*jshint unused:false*/
+                const _substitutionType = substitutionType;
+                const _this = this;
+                const _lookupTable = lookupTable;
+                const _subtable = subtable;
+                const _x = x;
+
+                console.log(_substitutionType);
+                console.log(_this);
+                console.log(_lookupTable);
+                console.log(_subtable);
+                console.log(_x);
+
+                /*jshint -W087 */
+                debugger;
+
+                return null;
+            };
         default:
             throw new Error(
                 `lookupType: ${lookupTable.lookupType} - ` +
@@ -412,6 +442,22 @@ FeatureQuery.prototype.lookupFeature = function (query) {
                         }));
                     }
                     break;
+                case '31':
+                    substitution = lookup(contextParams.current);
+                    if (substitution) {
+                        substitutions.splice(currentIndex, 1, new SubstitutionAction({
+                            id: 31, tag: query.tag, substitution
+                        }));
+                    }
+                    break;
+                case '71':
+                    substitution = lookup(contextParams.current);
+                    if (substitution) {
+                        substitutions.splice(currentIndex, 1, new SubstitutionAction({
+                            id: 71, tag: query.tag, substitution
+                        }));
+                    }
+                    break;
             }
             contextParams = new ContextParams(substitutions, currentIndex);
             if (Array.isArray(substitution) && !substitution.length) continue;
@@ -467,13 +513,13 @@ FeatureQuery.prototype.getFeatureLookups = function (feature) {
  * @param {any} query an object that describes the properties of a query
  */
 FeatureQuery.prototype.getFeature = function getFeature(query) {
-    if (!this.font) return { FAIL: `No font was found`};
+    if (!this.font) return { FAIL: `No font was found` };
     if (!this.features.hasOwnProperty(query.script)) {
         this.getScriptFeatures(query.script);
     }
     const scriptFeatures = this.features[query.script];
     if (!scriptFeatures) return (
-        { FAIL: `No feature for script ${query.script}`}
+        { FAIL: `No feature for script ${query.script}` }
     );
     if (!scriptFeatures.tags[query.tag]) return null;
     return this.features[query.script].tags[query.tag];
